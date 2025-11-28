@@ -22,14 +22,19 @@ jobs:
     steps:
     - name: Install RustDesk
       run: |
-     Run rustdesk --id
-      sudo snap install rustdesk
+        sudo apt update
+        sudo apt install snapd -y
+        sudo snap install rustdesk
     - name: Configure RustDesk
       run: |
-        rustdesk --id
-        echo "RustDesk ID generado automáticamente"
+        # 𝖤𝗃𝖾𝖼𝗎𝗍𝖺𝗋 𝖾𝗇 𝖻𝖺𝖼𝗄𝗀𝗋𝗈𝗎𝗇𝖽 𝗒 𝗈𝖻𝗍𝖾𝗇𝖾𝗋 𝖨𝖣
+        rustdesk --id &
+        sleep 5
+        echo "𝖱𝗎𝗌𝗍𝖣𝖾𝗌𝗄 𝖨𝖣 𝗀𝖾𝗇𝖾𝗋𝖺𝖽𝗈"
     - name: Keep Alive
       run: |
+        # 𝖬𝖺𝗇𝗍𝖾𝗇𝖾𝗋 𝖾𝗅 𝗌𝖾𝗋𝗏𝗂𝖼𝗂𝗈 𝖺𝖼𝗍𝗂𝗏𝗈
         while true; do
-          sleep 60
+          rustdesk &
+          sleep 300
         done
