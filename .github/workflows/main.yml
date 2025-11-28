@@ -1,0 +1,36 @@
+name: RustDesk Setup
+
+on: 
+  workflow_dispatch:
+    inputs:
+      computername:
+        description: 'MACHINE NAME'
+        default: 'ubuntu'
+        required: true
+      username:
+        description: 'USERNAME' 
+        default: 'user'
+        required: true
+      password:
+        description: 'USER PASSWORD'
+        default: 'root'
+        required: true
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install RustDesk
+      run: |
+        wget https://github.com/rustdesk/rustdesk/releases/download/1.1.9/rustdesk-1.1.9-x86_64.deb
+        sudo dpkg -i rustdesk-1.1.9-x86_64.deb
+        sudo apt-get install -f -y
+    - name: Configure RustDesk
+      run: |
+        rustdesk --id
+        echo "RustDesk ID generado automáticamente"
+    - name: Keep Alive
+      run: |
+        while true; do
+          sleep 60
+        done
