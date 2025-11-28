@@ -22,8 +22,8 @@ jobs:
     steps:
     - name: Install RustDesk
       run: |
-        wget https://github.com/rustdesk/rustdesk/releases/download/1.4.4/rustdesk-1.4.4-x86_64.deb
-        sudo apt-get install -f -y
+     Run rustdesk --id
+      sudo snap install rustdesk
     - name: Configure RustDesk
       run: |
         rustdesk --id
