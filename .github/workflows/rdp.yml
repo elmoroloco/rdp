@@ -1,12 +1,12 @@
 name: Windows 11 RDP con ngrok (Winget)
 
 on: 
-  workflow_dispatch: # Permite activar el proceso manualmente desde la pestaña Actions
+  workflow_dispatch: 
 
 jobs:
   build:
     runs-on: windows-latest
-    timeout-minutes: 360 # Límite máximo permitido por GitHub (6 horas)
+    timeout-minutes: 360 
 
     steps:
     - name: Instalar ngrok vía winget
@@ -15,6 +15,10 @@ jobs:
 
     - name: Autenticar ngrok
       run: |
+        # Forzar la actualización de las variables de entorno en la sesión actual
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+        
+        # Ejecutar la autenticación
         ngrok config add-authtoken "366YyiVvJcxouzvRkdubw0Eb9CD_4KazgGQnhZGhoR9m59b5"
 
     - name: Habilitar Escritorio Remoto (RDP)
@@ -30,6 +34,9 @@ jobs:
 
     - name: Crear Túnel ngrok y Mostrar Credenciales
       run: |
+        # Recargar el Path también en este paso por seguridad
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+        
         Start-Process ngrok -ArgumentList "tcp 3389"
         Start-Sleep -Seconds 10
         $Response = Invoke-RestMethod -Uri "http://127.0.0"
