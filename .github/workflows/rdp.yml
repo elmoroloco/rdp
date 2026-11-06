@@ -26,7 +26,6 @@ jobs:
 
     - name: Configurar contraseña de Administrador
       run: |
-        # Usamos una contraseña fija por defecto para evitar el error de cadena vacía
         $Password = ConvertTo-SecureString "GitHubRDP123!" -AsPlainText -Force
         Set-LocalUser -Name "runneradmin" -Password $Password
 
@@ -34,9 +33,28 @@ jobs:
       run: |
         $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
         
+        # Iniciar ngrok en segundo plano
         Start-Process ngrok -ArgumentList "tcp 3389"
-        Start-Sleep -Seconds 10
-        $Response = Invoke-RestMethod -Uri "http://127.0.0"
+        
+        # Esperar y verificar activamente hasta que la API local responda
+        Write-Host "Esperando a que ngrok se inicialice..."
+        $Attempts = 0
+        $Response = $null
+        while ($null -eq $Response -and $Attempts -lt 6) {
+            Start-Sleep -Seconds 5
+            try {
+                $Response = Invoke-RestMethod -Uri "http://127.0.0" -ErrorAction Stop
+            } catch {
+                $Attempts++
+                Write-Host "Reintentando conexión con la API de ngrok ($Attempts/6)..."
+            }
+        }
+
+        if ($null -eq $Response) {
+            Write-Error "No se pudo conectar con la API de ngrok. Revisa los logs."
+            exit 1
+        }
+
         $PublicUrl = $Response.tunnels.public_url
         Write-Host "=========================================================="
         Write-Host "CONEXIÓN RDP LISTA"
