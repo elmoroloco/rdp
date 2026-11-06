@@ -15,10 +15,7 @@ jobs:
 
     - name: Autenticar ngrok
       run: |
-        # Forzar la actualización de las variables de entorno en la sesión actual
         $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-        
-        # Ejecutar la autenticación
         ngrok config add-authtoken "366YyiVvJcxouzvRkdubw0Eb9CD_4KazgGQnhZGhoR9m59b5"
 
     - name: Habilitar Escritorio Remoto (RDP)
@@ -29,12 +26,12 @@ jobs:
 
     - name: Configurar contraseña de Administrador
       run: |
-        $Password = ConvertTo-SecureString "${{ secrets.USER_PASSWORD }}" -AsPlainText -Force
+        # Usamos una contraseña fija por defecto para evitar el error de cadena vacía
+        $Password = ConvertTo-SecureString "GitHubRDP123!" -AsPlainText -Force
         Set-LocalUser -Name "runneradmin" -Password $Password
 
     - name: Crear Túnel ngrok y Mostrar Credenciales
       run: |
-        # Recargar el Path también en este paso por seguridad
         $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
         
         Start-Process ngrok -ArgumentList "tcp 3389"
@@ -45,7 +42,7 @@ jobs:
         Write-Host "CONEXIÓN RDP LISTA"
         Write-Host "Dirección de conexión: $PublicUrl" -ForegroundColor Green
         Write-Host "Usuario: runneradmin"
-        Write-Host "Contraseña: La que configuraste en USER_PASSWORD"
+        Write-Host "Contraseña: GitHubRDP123!"
         Write-Host "=========================================================="
         
     - name: Mantener el flujo activo
