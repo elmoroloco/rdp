@@ -1,4 +1,4 @@
-name: Windows 11 RDP con ngrok Oficial
+name: Windows 11 RDP con ngrok Fijo
 
 on: 
   workflow_dispatch: 
@@ -9,6 +9,13 @@ jobs:
     timeout-minutes: 360 
 
     steps:
+    - name: Descargar y Configurar Ngrok Portable
+      run: |
+        New-Item -ItemType Directory -Force -Path C:\ngrok
+        Invoke-WebRequest -Uri "https://equinox.io" -OutFile C:\ngrok\ngrok.zip
+        Expand-Archive -Path C:\ngrok\ngrok.zip -DestinationPath C:\ngrok\ -Force
+        C:\ngrok\ngrok.exe config add-authtoken "366YyiVvJcxouzvRkdubw0Eb9CD_4KazgGQnhZGhoR9m59b5"
+
     - name: Habilitar Escritorio Remoto (RDP)
       run: |
         Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
@@ -20,22 +27,35 @@ jobs:
         $Password = ConvertTo-SecureString "GitHubRDP123!" -AsPlainText -Force
         Set-LocalUser -Name "runneradmin" -Password $Password
 
-    - name: Iniciar Túnel Ngrok de forma nativa
-      uses: ngrok/actions/tunnel@v1
-      with:
-        protocol: tcp
-        port: 3389
-        authtoken: "366YyiVvJcxouzvRkdubw0Eb9CD_4KazgGQnhZGhoR9m59b5"
-
-    - name: Mantener el flujo activo y mostrar credenciales
+    - name: Crear Túnel ngrok y Mostrar Enlace
       run: |
-        Write-Host "=========================================================="
-        Write-Host "CONEXIÓN RDP CONFIGURADA"
-        Write-Host "Busca la URL TCP pública en los logs del paso anterior o en tu panel de ngrok."
-        Write-Host "Usuario: runneradmin"
-        Write-Host "Contraseña: GitHubRDP123!"
-        Write-Host "=========================================================="
+        Write-Host "Iniciando túnel TCP en puerto 3389..."
+        # Se lanza usando cmd para asegurar la persistencia en segundo plano
+        cmd /c "start /B C:\ngrok\ngrok.exe tcp 3389 --log=stdout > C:\ngrok\ngrok.log"
         
+        Write-Host "Esperando la asignación de la IP pública..."
+        Start-Sleep -Seconds 15
+        
+        # Consultar la API interna local de ngrok de forma simplificada
+        try {
+            $Response = Invoke-RestMethod -Uri "http://127.0.0"
+            $PublicUrl = $Response.tunnels.public_url
+            
+            Write-Host "=========================================================="
+            Write-Host "CONEXIÓN RDP LISTA"
+            Write-Host "Dirección de conexión: $PublicUrl" -ForegroundColor Green
+            Write-Host "Usuario: runneradmin"
+            Write-Host "Contraseña: GitHubRDP123!"
+            Write-Host "=========================================================="
+        } catch {
+            Write-Host "Error al obtener la URL desde la API. Mostrando logs de diagnóstico:" -ForegroundColor Red
+            if (Test-Path C:\ngrok\ngrok.log) { Get-Content C:\ngrok\ngrok.log }
+            exit 1
+        }
+        
+    - name: Mantener el flujo activo
+      run: |
         while ($true) {
             Start-Sleep -Seconds 60
         }
+
