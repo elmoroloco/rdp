@@ -1,4 +1,4 @@
-name: Windows 11 RDP con ngrok
+name: Windows 11 RDP con ngrok (Winget)
 
 on: 
   workflow_dispatch: # Permite activar el proceso manualmente desde la pestaña Actions
@@ -9,11 +9,9 @@ jobs:
     timeout-minutes: 360 # Límite máximo permitido por GitHub (6 horas)
 
     steps:
-    - name: Descargar e instalar ngrok
+    - name: Instalar ngrok vía winget
       run: |
-        Invoke-WebRequest https://equinox.io -OutFile ngrok.zip
-        Expand-Archive ngrok.zip
-        Move-Item ngrok/ngrok.exe C:\Windows\System32\
+        winget install ngrok.ngrok --accept-source-agreements --accept-package-agreements
 
     - name: Autenticar ngrok
       run: |
@@ -35,7 +33,7 @@ jobs:
         Start-Process ngrok -ArgumentList "tcp 3389"
         Start-Sleep -Seconds 10
         $Response = Invoke-RestMethod -Uri http://9.0.0
-        $PublicUrl = $Response.tunnels[0].public_url
+        $PublicUrl = $Response.tunnels.public_url
         Write-Host "=========================================================="
         Write-Host "CONEXIÓN RDP LISTA"
         Write-Host "Dirección de conexión: ($PublicUrl)" -ForegroundColor Green
