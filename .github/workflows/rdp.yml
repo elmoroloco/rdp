@@ -31,31 +31,40 @@ jobs:
 
     - name: Crear Túnel ngrok y Mostrar Credenciales
       run: |
+        # Forzar recarga del Path del sistema para localizar ngrok.exe
         $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+        $NgrokPath = Get-Command ngrok | Select-Object -ExpandProperty Source
         
-        # Iniciar ngrok en segundo plano
-        Start-Process ngrok -ArgumentList "tcp 3389"
+        Write-Host "Iniciando ngrok desde: $NgrokPath"
         
-        # Esperar y verificar activamente hasta que la API local responda
-        Write-Host "Esperando a que ngrok se inicialice..."
+        # Arrancar ngrok guardando los logs directamente en un archivo local
+        Start-Process -FilePath $NgrokPath -ArgumentList "tcp 3389 --log=stdout" -RedirectStandardOutput "ngrok.log"
+        
+        Write-Host "Esperando a que ngrok genere la URL pública..."
         $Attempts = 0
-        $Response = $null
-        while ($null -eq $Response -and $Attempts -lt 6) {
+        $PublicUrl = $null
+        
+        # Buscar la URL dentro del archivo de logs durante un máximo de 30 segundos
+        while ($null -eq $PublicUrl -and $Attempts -lt 6) {
             Start-Sleep -Seconds 5
-            try {
-                $Response = Invoke-RestMethod -Uri "http://127.0.0" -ErrorAction Stop
-            } catch {
-                $Attempts++
-                Write-Host "Reintentando conexión con la API de ngrok ($Attempts/6)..."
+            if (Test-Path "ngrok.log") {
+                $LogContent = Get-Content "ngrok.log" -Raw
+                # Filtrar la URL mediante expresiones regulares (captura tcp://...)
+                if ($LogContent -match "url=(tcp://[^\s]+)") {
+                    $PublicUrl = $Matches[1]
+                }
             }
+            $Attempts++
         }
 
-        if ($null -eq $Response) {
-            Write-Error "No se pudo conectar con la API de ngrok. Revisa los logs."
+        # Si no se encuentra la URL, mostrar el contenido del log para saber qué ha fallado
+        if ($null -eq $PublicUrl) {
+            Write-Host "Contenido del log de ngrok:" -ForegroundColor Red
+            if (Test-Path "ngrok.log") { Get-Content "ngrok.log" } else { Write-Host "El archivo ngrok.log no se creó." }
+            Write-Error "No se pudo obtener la URL pública de ngrok."
             exit 1
         }
 
-        $PublicUrl = $Response.tunnels.public_url
         Write-Host "=========================================================="
         Write-Host "CONEXIÓN RDP LISTA"
         Write-Host "Dirección de conexión: $PublicUrl" -ForegroundColor Green
