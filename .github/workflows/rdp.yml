@@ -1,0 +1,50 @@
+name: Windows 11 RDP con ngrok
+
+on: 
+  workflow_dispatch: # Permite activar el proceso manualmente desde la pestaña Actions
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 360 # Límite máximo permitido por GitHub (6 horas)
+
+    steps:
+    - name: Descargar e instalar ngrok
+      run: |
+        Invoke-WebRequest https://equinox.io -OutFile ngrok.zip
+        Expand-Archive ngrok.zip
+        Move-Item ngrok/ngrok.exe C:\Windows\System32\
+
+    - name: Autenticar ngrok
+      run: |
+        ngrok config add-authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+
+    - name: Habilitar Escritorio Remoto (RDP)
+      run: |
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
+
+    - name: Configurar contraseña de Administrador
+      run: |
+        $Password = ConvertTo-SecureString "${{ secrets.USER_PASSWORD }}" -AsPlainText -Force
+        Set-LocalUser -Name "runneradmin" -Password $Password
+
+    - name: Crear Túnel ngrok y Mostrar Credenciales
+      run: |
+        Start-Process ngrok -ArgumentList "tcp 3389"
+        Start-Sleep -Seconds 10
+        $Response = Invoke-RestMethod -Uri http://9.0.0
+        $PublicUrl = $Response.tunnels[0].public_url
+        Write-Host "=========================================================="
+        Write-Host "CONEXIÓN RDP LISTA"
+        Write-Host "Dirección de conexión: ($PublicUrl)" -ForegroundColor Green
+        Write-Host "Usuario: runneradmin"
+        Write-Host "Contraseña: La que configuraste en USER_PASSWORD"
+        Write-Host "=========================================================="
+        
+    - name: Mantener el flujo activo
+      run: |
+        while ($true) {
+            Start-Sleep -Seconds 60
+        }
